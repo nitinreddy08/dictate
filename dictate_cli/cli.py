@@ -53,8 +53,10 @@ def banner():
     bars.append("✦", style="bold #ffd60a")
     title = Text.assemble(bars, "  ", rainbow("Dictate"), (f"  v{__version__}", "dim"))
     sub = Text("Speak anywhere, type nowhere · private and offline", style="dim")
-    console.print(Panel(Group(Align.center(title), Align.center(sub)), box=box.ROUNDED,
-                        border_style="#3a3a40", padding=(1, 4)))
+    credit = Text.assemble(("Made by ", "dim"), ("Nitin Reddy", "bold #ffd60a"), (" · ", "dim"),
+                           ("github.com/nitinreddy08", f"underline {ACCENT}"))
+    console.print(Panel(Group(Align.center(title), Align.center(sub), Text(""), Align.center(credit)),
+                        box=box.ROUNDED, border_style="#3a3a40", padding=(1, 4)))
 
 
 def step(n, total, title):

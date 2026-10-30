@@ -23,6 +23,7 @@ Write-Host ("  " + (Rgb 255 107 107 "▃") + (Rgb 255 184 77 "▇") + (Rgb 76 21
     (Rgb 255 214 10 "✦") + "  " + (Rgb 255 107 107 "D") + (Rgb 255 184 77 "ic") + (Rgb 76 217 100 "ta") +
     (Rgb 90 200 250 "t") + (Rgb 191 122 240 "e") + "  " + (Dim "installer"))
 Write-Host ("  " + (Dim "Speak anywhere, type nowhere · private and offline"))
+Write-Host ("  " + (Dim "Made by ") + (Rgb 255 214 10 "Nitin Reddy") + (Dim " · github.com/nitinreddy08"))
 
 Step 1 "Checking Windows"
 $os = [Environment]::OSVersion.Version
