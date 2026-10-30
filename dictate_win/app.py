@@ -99,6 +99,8 @@ class Controller(QObject):
         conn = self.server.nextPendingConnection()
 
         def read():
+            if not conn.bytesAvailable():
+                return
             cmd = bytes(conn.readAll()).decode().strip()
             {"toggle": self.toggle, "stop": self.stop, "retry": self.retry, "reload": self.reload,
              "quit": QApplication.quit}.get(cmd.split(" ")[0], lambda: None)()
@@ -106,7 +108,11 @@ class Controller(QObject):
                 self.popup.command(cmd[4:])
             conn.disconnectFromServer()
 
+        # On Windows the command can arrive together with the connection, before readyRead is hooked up
+        # (so it never fires): read whatever is already there, and again if the sender hangs up first
         conn.readyRead.connect(read)
+        conn.disconnected.connect(read)
+        read()
 
     def reload(self):
         """Settings changed (e.g. `dictate models --use`): use them from the next dictation."""
