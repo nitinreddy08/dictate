@@ -58,6 +58,41 @@ if got != TEXT:
 screenshot("typing")
 box.close()
 
+# 1b. typing into Notepad (a standard Windows text box), read back with WM_GETTEXT
+import ctypes  # noqa: E402
+import subprocess  # noqa: E402
+
+notepad = subprocess.Popen(["notepad.exe"])
+wait(2500)
+hwnd = ctypes.windll.user32.FindWindowW("Notepad", None)
+win32.user32.SetForegroundWindow(hwnd)
+wait(800)
+typing.type_text(TEXT)
+wait(1000)
+edit = 0
+for cls in ("Edit", "RichEditD2DPT"):
+    edit = edit or ctypes.windll.user32.FindWindowExW(hwnd, None, cls, None)
+if not edit:  # Windows 11 Notepad nests its text box deeper
+    found = []
+    proc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)(
+        lambda h, _: (found.append(h) if win32.foreground_class() and _class(h) in ("Edit", "RichEditD2DPT")
+                      else None) or True)
+
+    def _class(h):
+        buf = ctypes.create_unicode_buffer(64)
+        ctypes.windll.user32.GetClassNameW(h, buf, 64)
+        return buf.value
+
+    ctypes.windll.user32.EnumChildWindows(hwnd, proc, 0)
+    edit = found[0] if found else 0
+buf = ctypes.create_unicode_buffer(4096)
+ctypes.windll.user32.SendMessageW(edit, 0x000D, 4096, buf)  # WM_GETTEXT
+notepad_text = buf.value.replace("\r\n", "\n").replace("\r", "\n")
+results["Notepad got the typed text exactly"] = notepad_text == TEXT
+print(f"Notepad: found text box={bool(edit)}  got {ascii(notepad_text)}")
+screenshot("typing_notepad")
+notepad.kill()
+
 # 2. the global shortcut
 fired = []
 hk = Hotkeys("Insert", lambda: fired.append("toggle"), lambda: fired.append("stop"))
