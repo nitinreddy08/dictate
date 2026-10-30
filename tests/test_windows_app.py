@@ -67,6 +67,11 @@ def app(tmp_path, speech):
 def test_dictation_types_text_and_remembers_it(app):
     typed, tmp = app
     send("toggle")
+    log = tmp / "app.log"
+    for _ in range(100):  # wait until the app is actually recording
+        if "recording" in log.read_text():
+            break
+        time.sleep(0.1)
     time.sleep(5)  # the clip plays in real time, then a pause
     send("toggle")
     for _ in range(150):

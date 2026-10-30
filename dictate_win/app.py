@@ -59,6 +59,7 @@ class Controller(QObject):
         self.model = Model(settings["model"], os.path.join(self.dir, "models"),
                            idle_secs=settings["idle_unload_secs"], log=log)
         self.popup = Popup(settings["hotkey"])
+        self.popup.prewarm()
         self.rec, self.transcription, self.started, self.busy = None, None, 0.0, False
         self.auto_stop = QTimer(self, singleShot=True, interval=MAX_SECS * 1000, timeout=self.stop)
 
@@ -137,17 +138,19 @@ class Controller(QObject):
         try:
             mic = "Test microphone" if fake_mic else default_mic()
             rec = (ClipRecorder(fake_mic, self.level.emit) if fake_mic else Recorder(self.level.emit))
-            self.model.preload()  # loads while you speak
             self._chime("start")
-            rec.start()
+            rec.start()  # the mic first, so no words are lost...
+            self.model.preload()  # ...then load the model while you speak
         except MicError as ex:
             self.popup.command(f"error {ex}")
             return
         self.rec, self.started = rec, time.monotonic()
         skip = int(CHIME_SKIP * 16000) if self.settings["sounds"] else 0
         self.transcription = Transcription(self.model, lambda: rec.get()[skip:])
+        t = time.monotonic()
         self.popup.command(f"listening {mic}")
         self._set_state("listening")
+        log(f"popup shown in {(time.monotonic() - t) * 1000:.0f} ms")
         if self.hotkeys:
             self.hotkeys.set_listening(True)
         self.auto_stop.start()

@@ -252,6 +252,21 @@ class Popup(QWidget):
         self.fade = QPropertyAnimation(self, b"windowOpacity", duration=200)
         self.slide = QPropertyAnimation(self, b"pos", duration=200, easingCurve=QEasingCurve.OutQuad)
 
+    def prewarm(self):
+        """Draw every state once, off-screen, at start-up. The first time text and shadows are drawn,
+        Windows loads fonts and sets up effects, which can freeze the app for seconds; doing it now means
+        your first dictation starts instantly and no audio is lost while the popup appears."""
+        for cmd in ("listening Microphone", "transcribing", "done Ready", "error Ready|Ready"):
+            self.command(cmd)
+            self._place()
+            self.grab()
+        self.hide_timer.stop()
+        self.tick.stop()
+        self.fade.stop()
+        self.slide.stop()
+        self.mode = "hide"
+        self.hide()
+
     # --- commands (same protocol as the GNOME popup) ---
     def command(self, line):
         cmd, _, arg = line.strip().partition(" ")
