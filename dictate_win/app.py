@@ -102,6 +102,7 @@ class Controller(QObject):
             if not conn.bytesAvailable():
                 return
             cmd = bytes(conn.readAll()).decode().strip()
+            log(f"command: {cmd.split(' ')[0]}")
             {"toggle": self.toggle, "stop": self.stop, "retry": self.retry, "reload": self.reload,
              "quit": QApplication.quit}.get(cmd.split(" ")[0], lambda: None)()
             if cmd.startswith("osd "):  # tests: drive the popup directly

@@ -20,16 +20,10 @@ pytest.importorskip("PySide6")
 
 
 def send(cmd):
-    from PySide6.QtNetwork import QLocalSocket
+    """The same way `dictate toggle` reaches the running app (a named pipe on Windows)."""
+    from dictate_cli.cli import send as cli_send
 
-    from dictate_win.app import server_name
-
-    s = QLocalSocket()
-    s.connectToServer(server_name())
-    assert s.waitForConnected(3000), "app isn't listening"
-    s.write(cmd.encode())
-    s.waitForBytesWritten(1000)
-    s.disconnectFromServer()
+    assert cli_send(cmd), "app isn't listening"
 
 
 @pytest.fixture
