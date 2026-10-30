@@ -17,6 +17,11 @@ import sys
 import threading
 import time
 
+from dictate_core import history
+from dictate_core.engine import Model as CoreModel
+from dictate_core.session import Transcription
+from dictate_core.text import clean
+
 RUNTIME = os.environ.get("XDG_RUNTIME_DIR", "/tmp")  # per-user tmpfs: audio never touches the disk
 SOCK = os.path.join(RUNTIME, "dictate.sock")
 STATE = os.path.join(RUNTIME, "dictate.state")  # read by the top-bar button (gnome-extension/)
@@ -25,8 +30,6 @@ HISTORY = os.path.join(RUNTIME, "dictate-history.jsonl")
 RECOVERED = os.path.join(RUNTIME, "dictate.recovered.wav")
 HISTORY_KEEP = 3
 HERE = os.path.dirname(os.path.abspath(__file__))
-CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "dictate")
-VOCAB_FILE = os.path.join(CONFIG_DIR, "vocabulary.txt")
 # A local model folder (models/<name>) is used if present, otherwise the name is downloaded to MODEL_DIR
 MODEL = os.environ.get("DICTATE_MODEL", "small.en")
 MODEL_DIR = os.environ.get("DICTATE_MODEL_DIR", os.path.join(HERE, "models"))
@@ -185,169 +188,30 @@ def load_wav(path):
     return audio[int(CHIME_SKIP * RATE):] if SOUNDS else audio
 
 
-# --- speech to text -------------------------------------------------------------------
-
-def vocabulary():
-    """Words and names Whisper should prefer (one per line in ~/.config/dictate/vocabulary.txt)."""
-    try:
-        with open(VOCAB_FILE) as f:
-            words = [w.strip() for w in f if w.strip() and not w.lstrip().startswith("#")]
-    except OSError:
-        return None
-    return ", ".join(words) or None
-
-
-# Spoken commands -> text. Matched case-insensitively with any punctuation Whisper put around them.
-COMMANDS = [
-    (r"new paragraph", "\n\n"),
-    (r"new line|next line", "\n"),
-    (r"full stop", "."),
-    (r"comma", ","),
-    (r"question mark", "?"),
-    (r"exclamation (?:mark|point)", "!"),
-    (r"colon", ":"),
-    (r"semicolon", ";"),
-]
-
-
-def apply_commands(text):
-    for spoken, out in COMMANDS:
-        if out.strip():  # punctuation: attach to the previous word
-            text = re.sub(rf"[\s,.]*\b(?:{spoken})\b[.,!?]*", out, text, flags=re.I)
-        else:  # line breaks: drop the surrounding spaces and Whisper's punctuation
-            text = re.sub(rf"[\s,]*\b(?:{spoken})\b[.,!?]*\s*", out, text, flags=re.I)
-    # Capitalise the first letter after a line break the commands created
-    text = re.sub(r"(\n)([a-z])", lambda m: m.group(1) + m.group(2).upper(), text)
-    return text.strip(" ")
-
-
-# Tells Whisper what to expect. On your own recordings (tools/voice_test.py + tools/benchmark.py) this,
-# with Whisper's silence trimming off, cut word errors by about a third on both mics.
-STYLE = "Okay, here is my dictation. It's written in clear Indian English, with proper punctuation."
-
-
-class Model:
-    """Whisper model that loads on demand (while you speak) and is freed after IDLE_SECS idle."""
-
-    def __init__(self, osd):
-        self.osd, self.model, self.timer = osd, None, None
-        self.lock = threading.Lock()
-        self.ready = threading.Event()
-
-    def preload(self):
-        if self.timer:
-            self.timer.cancel()
-        threading.Thread(target=self.get, daemon=True).start()
-
-    def get(self):
-        with self.lock:
-            if self.model is None:
-                from faster_whisper import WhisperModel
-
-                t = time.time()
-                local = os.path.join(MODEL_DIR, MODEL)
-                self.model = WhisperModel(local if os.path.isdir(local) else MODEL, device="cpu",
-                                          compute_type="int8", cpu_threads=THREADS, download_root=MODEL_DIR)
-                print(f"loaded {MODEL} in {time.time() - t:.1f}s", flush=True)
-                self.ready.set()
-            return self.model
-
-    def transcribe(self, audio, context=""):
-        segments, _ = self.get().transcribe(
-            audio, beam_size=5, vad_filter=False, without_timestamps=True,
-            condition_on_previous_text=False, hotwords=vocabulary(),
-            initial_prompt=f"{STYLE} {context[-200:]}".strip())
-        return " ".join(s.text.strip() for s in segments).strip()
-
-    def release_later(self):
-        self.timer = threading.Timer(IDLE_SECS, self.release)
-        self.timer.daemon = True
-        self.timer.start()
-
-    def release(self):
-        import ctypes
-        import gc
-
-        with self.lock:
-            self.model = None
-            self.ready.clear()
-            gc.collect()
-            ctypes.CDLL("libc.so.6").malloc_trim(0)  # hand freed memory back to the OS
-        self.osd.close()
-        print("idle: model unloaded", flush=True)
-        if SOCKET_ACTIVATED:  # systemd keeps the socket and restarts us on the next key press
-            print("idle: exiting", flush=True)
-            os.kill(os.getpid(), signal.SIGTERM)
-
+# --- speech to text (shared with Windows: dictate_core) -----------------------------
 
 class Recording:
-    """One dictation, recorded to a RAM file. Whenever you pause, everything said so far is transcribed
-    in the background as one piece, so if you stop right after a pause the text is already done."""
-
-    PAUSE = 0.4      # seconds of silence after which we transcribe what's been said so far
-    MAX_PIECE = 20.0  # seconds; longer recordings are split at a pause (Whisper hears 30 s at a time)
+    """One dictation: pw-record writes to a RAM file while dictate_core transcribes it as it grows."""
 
     def __init__(self, model, path):
-        self.model, self.path = model, path
-        self.texts, self.done = [], 0  # finished pieces of a long recording; samples they cover
-        self.guess = (None, None, "")  # (done, speech end, text) for everything after `done`
-        self.stop_flag = threading.Event()
+        self.path = path
         self.proc = subprocess.Popen(
             ["pw-record", "--rate", str(RATE), "--channels", "1", "--format", "s16", path],
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        self.worker = threading.Thread(target=self._pretranscribe, daemon=True)
-        self.worker.start()
+        self.transcription = Transcription(model, lambda: load_wav(path))
 
     def failed(self):
         """pw-record's error if it couldn't open the microphone, else None."""
-        if self.proc.poll() is None or self.stop_flag.is_set():
+        if self.proc.poll() is None or self.transcription.stop_flag.is_set():
             return None
         return (self.proc.stderr.read() or b"").decode(errors="replace").strip() or "recorder exited"
 
-    def _pretranscribe(self):
-        from faster_whisper.vad import VadOptions, get_speech_timestamps
-
-        opts = VadOptions(min_silence_duration_ms=int(self.PAUSE * 1000))
-        while not self.stop_flag.wait(0.5):
-            if not self.model.ready.is_set():
-                continue
-            rest = load_wav(self.path)[self.done:]
-            speech = get_speech_timestamps(rest, vad_options=opts) if len(rest) > RATE // 2 else []
-            ends = [s["end"] for s in speech if s["end"] + self.PAUSE * RATE <= len(rest)]
-            if not ends:
-                continue
-            context = " ".join(self.texts)
-            if ends[-1] > self.MAX_PIECE * RATE:  # long recording: finish this piece at the pause
-                cut = ends[-1] + int(0.2 * RATE)
-                self.texts.append(self.model.transcribe(rest[:cut], context))
-                self.done += cut
-            elif ends[-1] == speech[-1]["end"] and self.guess[:2] != (self.done, ends[-1]):
-                # Paused after the latest speech: transcribe it all in case you stop here
-                text = self.model.transcribe(rest[:ends[-1] + int(0.2 * RATE)], context)
-                self.guess = (self.done, ends[-1], text)
-
     def finish(self):
-        """Stop recording and return (text, audio) once anything still untranscribed is done."""
-        self.stop_flag.set()
+        """Stop recording and return (raw text, audio) once anything still untranscribed is done."""
         self.proc.terminate()
         self.proc.wait()
-        self.worker.join()
         audio = load_wav(self.path)
-        rest = audio[self.done:]
-        if not self._speech_after(rest, -int(0.2 * RATE)):
-            return " ".join(t for t in self.texts if t).strip(), audio  # no speech: never ask Whisper
-        done, end, text = self.guess
-        if done == self.done and not self._speech_after(rest, end):
-            self.texts.append(text)  # nothing new since the pause: already transcribed
-        elif len(rest) > 0.3 * RATE:
-            self.texts.append(self.model.transcribe(rest, " ".join(self.texts)))
-        return " ".join(t for t in self.texts if t).strip(), audio
-
-    def _speech_after(self, rest, end):
-        from faster_whisper.vad import get_speech_timestamps
-
-        after = rest[end + int(0.2 * RATE):]
-        return len(after) > 0.3 * RATE and bool(get_speech_timestamps(after))
+        return self.transcription.finish(audio), audio
 
 
 # --- typing ------------------------------------------------------------------------
@@ -372,17 +236,7 @@ def type_via_extension(text):
 
 def remember(text):
     """Add a dictation to the recent history (top-bar icon → right-click)."""
-    import json
-
-    try:
-        with open(HISTORY) as f:
-            lines = f.readlines()[-(HISTORY_KEEP - 1):]
-    except OSError:
-        lines = []
-    lines.append(json.dumps({"time": time.time(), "text": text}) + "\n")
-    fd = os.open(HISTORY, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
-        f.writelines(lines)
+    history.remember(HISTORY, text, HISTORY_KEEP)
 
 
 class Typer:
@@ -527,7 +381,14 @@ def serve():
             ext_ready = threading.Thread(target=lambda: has_ext.__setitem__(0, extension_loaded()), daemon=True)
             ext_ready.start()
         osd.reset()
-    model = Model(osd)
+    def on_release():
+        osd.close()
+        if SOCKET_ACTIVATED:  # systemd keeps the socket and restarts us on the next key press
+            print("idle: exiting", flush=True)
+            os.kill(os.getpid(), signal.SIGTERM)
+
+    model = CoreModel(MODEL, MODEL_DIR, threads=THREADS, idle_secs=IDLE_SECS, on_release=on_release,
+                      log=lambda m: print(m, flush=True))
     enter_ready.start()
     typer = []
 
@@ -562,7 +423,7 @@ def serve():
         set_state("transcribing")
         try:
             audio = load_wav(RECOVERED)
-            text = apply_commands(model.transcribe(audio))
+            text = clean(model.transcribe(audio), float(abs(audio).max()) if audio.size else 0.0)
         except Exception as ex:
             fail(f"Retry failed|{str(ex)[:80]}")
             return
@@ -636,11 +497,8 @@ def serve():
         failed = False
         try:
             text, audio = rec.finish()
-            text = apply_commands(text)
             peak = float(abs(audio).max()) if audio.size else 0.0
-            # Whisper invents these on silence
-            if peak < 0.02 and text.lower().strip(" .!") in ("thank you", "thanks for watching", "you"):
-                text = ""
+            text = clean(text, peak)
         except Exception as ex:
             failed = True
             print(f"transcription failed: {ex}", flush=True)
