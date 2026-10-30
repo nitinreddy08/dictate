@@ -169,7 +169,7 @@ def meter(path, osd, stop):
 
 def chime(name):
     if SOUNDS:
-        subprocess.Popen(["pw-play", os.path.join(HERE, "sounds", f"{name}.wav")],
+        subprocess.Popen(["pw-play", os.path.join(HERE, "dictate_core", "assets", f"{name}.wav")],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 

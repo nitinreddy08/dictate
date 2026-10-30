@@ -9,3 +9,4 @@ __pycache__/
 *.egg-info/
 .test-models/
 .pytest_cache/
+.venv-win-dev/

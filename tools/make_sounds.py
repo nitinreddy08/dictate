@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the soft start/stop chimes (run with the dictate venv: .venv/bin/python sounds/make_sounds.py)."""
+"""Generate the soft start/stop chimes (run with the dictate venv: .venv/bin/python tools/make_sounds.py)."""
 import os
 import wave
 
@@ -7,7 +7,7 @@ import numpy as np
 
 RATE = 48000
 VOLUME = 0.16  # gentle: well below full scale
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dictate_core", "assets")
 
 
 def note(freq, start, length, total):
