@@ -7,19 +7,19 @@ from . import win32 as w
 VK_SHIFT, VK_RETURN = w.VK["Shift"], w.VK["Return"]
 
 
-def _events(text):
+def _keystrokes(text):
+    """One list of key events per character, so a character is never split between two sends."""
     for ch in text:
         if ch == "\n":  # Shift+Enter: a new line in chat apps too, instead of sending the message
-            yield w.key_input(VK_SHIFT)
-            yield w.key_input(VK_RETURN)
-            yield w.key_input(VK_RETURN, flags=w.KEYEVENTF_KEYUP)
-            yield w.key_input(VK_SHIFT, flags=w.KEYEVENTF_KEYUP)
+            yield [w.key_input(VK_SHIFT), w.key_input(VK_RETURN),
+                   w.key_input(VK_RETURN, flags=w.KEYEVENTF_KEYUP), w.key_input(VK_SHIFT, flags=w.KEYEVENTF_KEYUP)]
             continue
         data = ch.encode("utf-16-le")
-        for i in range(0, len(data), 2):  # characters outside the BMP (emoji) are two UTF-16 units
-            unit = int.from_bytes(data[i:i + 2], "little")
-            yield w.key_input(scan=unit, flags=w.KEYEVENTF_UNICODE)
-            yield w.key_input(scan=unit, flags=w.KEYEVENTF_UNICODE | w.KEYEVENTF_KEYUP)
+        units = [int.from_bytes(data[i:i + 2], "little") for i in range(0, len(data), 2)]
+        # Emoji and other characters outside the BMP are two UTF-16 units: press both, then release both,
+        # which is how Windows apps expect a surrogate pair
+        yield ([w.key_input(scan=u, flags=w.KEYEVENTF_UNICODE) for u in units] +
+               [w.key_input(scan=u, flags=w.KEYEVENTF_UNICODE | w.KEYEVENTF_KEYUP) for u in units])
 
 
 def where_to():
@@ -34,10 +34,15 @@ def where_to():
 
 
 def type_text(text, batch=64):
-    """Send `text` as keystrokes to the focused window. Returns how many characters' events went through."""
-    events = list(_events(text))
-    sent = 0
-    for i in range(0, len(events), batch):
-        sent += w.send(events[i:i + batch])
-        time.sleep(0.005)  # let slower apps keep up with long dictations
-    return sent == len(events)
+    """Send `text` as keystrokes to the focused window. True if Windows accepted every event."""
+    sent = total = 0
+    group = []
+    for keys in _keystrokes(text):
+        group += keys
+        if len(group) >= batch:
+            sent, total = sent + w.send(group), total + len(group)
+            group = []
+            time.sleep(0.005)  # let slower apps keep up with long dictations
+    if group:
+        sent, total = sent + w.send(group), total + len(group)
+    return sent == total
