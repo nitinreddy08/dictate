@@ -496,6 +496,21 @@ def cmd_vocab(args):
     return 0
 
 
+def use_utf8():
+    """Windows consoles (and redirected output) often default to a legacy code page that can't show ✔,
+    ★ or the rainbow bars: switch to UTF-8, and never crash on a character that still can't be shown."""
+    if IS_WINDOWS:
+        import ctypes
+
+        ctypes.windll.kernel32.SetConsoleOutputCP(65001)
+        os.system("")  # turn on colours in older consoles
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="dictate", description="Private, offline dictation.")
     sub = p.add_subparsers(dest="cmd")
@@ -515,8 +530,7 @@ def main(argv=None):
     u = sub.add_parser("uninstall", help="remove settings, models and autostart")
     u.add_argument("--yes", action="store_true")
     args = p.parse_args(argv)
-    if IS_WINDOWS:
-        os.system("")  # turn on colours in older consoles
+    use_utf8()
     try:
         if args.cmd == "setup":
             return cmd_setup(args)
