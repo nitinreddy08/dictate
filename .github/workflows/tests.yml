@@ -1,0 +1,56 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install with the real installer (from this checkout)
+        shell: pwsh
+        run: ./install.ps1 -Source . -NoSetup
+
+      - name: Guided setup, non-interactive (downloads tiny.en)
+        shell: pwsh
+        run: |
+          $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+          dictate setup --yes --model tiny.en --no-mic-test --no-start
+
+      - name: Doctor (no microphone on cloud machines, so a mic problem is expected)
+        shell: pwsh
+        run: |
+          $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+          dictate doctor
+          exit 0
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Test suite (core, transcription with Windows text-to-speech, the app end to end)
+        run: uv run --python 3.12 --extra test pytest -v
+
+      - name: Desktop smoke test (Unicode typing into a real window, shortcut, tray, popup)
+        run: uv run --python 3.12 python tools/win_smoke.py screenshots
+
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-screenshots
+          path: screenshots/
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Text-to-speech for test audio
+        run: sudo apt-get update && sudo apt-get install -y libespeak-ng1
+      - uses: astral-sh/setup-uv@v6
+      - name: Test suite (core and the Linux service end to end)
+        run: uv run --python 3.12 --extra test pytest -v

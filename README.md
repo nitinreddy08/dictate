@@ -1,4 +1,46 @@
-# dictate — Whisper push-to-talk
+# Dictate
+
+Private, offline dictation. Press a key, speak, press it again: your words are typed wherever your
+cursor is. Speech recognition runs on your own computer (OpenAI's Whisper, via faster-whisper); your
+voice never leaves it.
+
+## Windows 10/11
+
+Open **PowerShell** and run:
+
+```powershell
+irm https://raw.githubusercontent.com/nitinreddy08/dictate/main/install.ps1 | iex
+```
+
+No admin rights and no Python needed: the installer brings its own. A guided setup then checks your PC,
+shows the speech models with their pros and cons (and recommends one), downloads it with a progress bar,
+tests your microphone and lets you pick a shortcut.
+
+- **Use it:** click into any text box, press **Insert**, speak, then press **Insert** or **Enter**.
+- **Tray icon** (rainbow bars, by the clock): left-click to start/stop; right-click for your last 3
+  dictations (click to copy), *Retry last recording*, your vocabulary list and *Start with Windows*.
+- **Types any character** (₹, é, —, emoji) on any keyboard layout. On the desktop, or in apps running as
+  administrator (Windows blocks typing into those), the text goes to your clipboard instead and the popup
+  says so.
+- **Commands:** `dictate setup` · `dictate models` (`--use`, `--add`, `--remove`) · `dictate doctor` ·
+  `dictate start` / `stop` / `toggle` / `retry` · `dictate vocab` · `dictate uninstall`
+- **Where things live:** settings and vocabulary in `%APPDATA%\Dictate`, models and your last 3
+  dictations in `%LOCALAPPDATA%\Dictate`.
+
+| Model | Download | Memory | 15 s of speech | Notes |
+|---|---|---|---|---|
+| tiny.en | 78 MB | 300 MB | 0.4 s | Fastest; misses names and accents |
+| base.en | 148 MB | 410 MB | 0.65 s | Light; stumbles on place names |
+| **small.en** (default) | 486 MB | 850 MB | 1.7 s | Accurate with accents and names |
+| medium.en | 1.5 GB | ~2 GB | ~5 s | Fewer mistakes on hard audio |
+| large-v3-turbo | 1.6 GB | ~2.3 GB | ~6 s | Most accurate; slow on laptops |
+
+Timings measured on a 4-core Intel i5-1135G7 (~ = estimate). Models are only in memory while you
+dictate and are freed 90 s later.
+
+## Linux (GNOME on Wayland)
+
+The original version, with a GNOME Shell extension for the top-bar icon, popup and typing:
 
 Press **Insert**, speak, press **Insert** or **Enter** → the text is typed wherever your cursor is.
 A popup at the bottom center shows Listening (live waveform + timer) → Transcribing → the typed text.
@@ -64,3 +106,13 @@ A popup at the bottom center shows Listening (live waveform + timer) → Transcr
   with its own settings (never your live ones) and the Dictate extension loaded; scripts can `shot NAME`
   (screenshots land in `$XDG_RUNTIME_DIR/dictate-shelltest/shots/`), drive the popup with `osd "…"`, and click
   the icon. Example: `tools/test-shell/run.sh tools/test-shell/popup_states.sh`.
+
+## Development
+
+```bash
+python -m pytest            # core, transcription, Linux service and Windows app end to end
+python tools/win_smoke.py   # Windows only: typing into a real window, shortcut, tray, popup screenshots
+```
+
+`dictate_core` is shared; `dictate.py` + `gnome-extension/` are the Linux version; `dictate_win` is the
+Windows app and `dictate_cli` the `dictate` command. Licensed under the GPL-3.0-or-later.

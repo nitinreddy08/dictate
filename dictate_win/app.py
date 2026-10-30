@@ -100,13 +100,22 @@ class Controller(QObject):
 
         def read():
             cmd = bytes(conn.readAll()).decode().strip()
-            {"toggle": self.toggle, "stop": self.stop, "retry": self.retry,
+            {"toggle": self.toggle, "stop": self.stop, "retry": self.retry, "reload": self.reload,
              "quit": QApplication.quit}.get(cmd.split(" ")[0], lambda: None)()
             if cmd.startswith("osd "):  # tests: drive the popup directly
                 self.popup.command(cmd[4:])
             conn.disconnectFromServer()
 
         conn.readyRead.connect(read)
+
+    def reload(self):
+        """Settings changed (e.g. `dictate models --use`): use them from the next dictation."""
+        new = load_settings()
+        if new["model"] != self.settings["model"] and not self.busy and self.rec is None:
+            self.model.release()
+            self.model = Model(new["model"], os.path.join(self.dir, "models"),
+                               idle_secs=new["idle_unload_secs"], log=log)
+        self.settings.update(new)
 
     def toggle(self):
         if self.rec is None:
