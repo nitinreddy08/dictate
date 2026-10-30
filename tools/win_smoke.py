@@ -19,6 +19,7 @@ from dictate_win import typing, win32  # noqa: E402
 from dictate_win.hotkeys import Hotkeys  # noqa: E402
 from dictate_win.ui import Popup, app_icon  # noqa: E402
 
+sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 OUT = sys.argv[1] if len(sys.argv) > 1 else "screenshots"
 os.makedirs(OUT, exist_ok=True)
 TEXT = "Héllo ₹2,500 — naïve café ✓ 🎉\nSecond line"
@@ -53,7 +54,7 @@ wait(800)
 got = box.toPlainText()
 results["typed text arrived exactly"] = got == TEXT
 if got != TEXT:
-    print(f"expected {TEXT!r}\n     got {got!r}")
+    print(f"expected {ascii(TEXT)}\n     got {ascii(got)}")
 screenshot("typing")
 box.close()
 
