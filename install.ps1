@@ -4,9 +4,11 @@
 #
 # Installs the `dictate` command for your user, then runs the guided setup (model, mic test, shortcut).
 param(
-    [string]$Source = "git+https://github.com/nitinreddy08/dictate",
+    # A zip of the latest code: works without git, which most Windows PCs don't have
+    [string]$Source = "https://github.com/nitinreddy08/dictate/archive/refs/heads/main.zip",
     [switch]$NoSetup
 )
+if ($env:DICTATE_NO_SETUP) { $NoSetup = $true }   # for `irm … | iex`, which can't pass -NoSetup
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"   # PowerShell's own progress bar slows downloads a lot
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
