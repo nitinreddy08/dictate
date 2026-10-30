@@ -104,11 +104,17 @@ def cpu_name():
     return platform.processor() or platform.machine()
 
 
+def windows_name():
+    """Windows 11 still reports itself as version 10; the build number tells them apart."""
+    build = sys.getwindowsversion().build
+    return f"Windows {11 if build >= 22000 else 10} (build {build})"
+
+
 def system_info():
     import psutil
 
     info = {
-        "os": f"{platform.system()} {platform.release()}",
+        "os": windows_name() if IS_WINDOWS else f"{platform.system()} {platform.release()}",
         "cpu": cpu_name(),
         "cores": psutil.cpu_count(logical=False) or 1,
         "memory_gb": psutil.virtual_memory().total / 2**30,

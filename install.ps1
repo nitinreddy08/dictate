@@ -35,7 +35,8 @@ Step 1 "Checking Windows"
 $os = [Environment]::OSVersion.Version
 if ($os.Major -lt 10) { Fail "Dictate needs Windows 10 or 11." }
 if (-not [Environment]::Is64BitOperatingSystem) { Fail "Dictate needs 64-bit Windows." }
-Ok "Windows $($os.Major) $Dot 64-bit"
+$name = if ($os.Build -ge 22000) { "Windows 11" } else { "Windows 10" }   # 11 still reports version 10
+Ok "$name $Dot build $($os.Build) $Dot 64-bit"
 
 Step 2 "Installing Dictate"
 $bin = Join-Path $env:USERPROFILE ".local\bin"
