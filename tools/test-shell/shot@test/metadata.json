@@ -1,0 +1,1 @@
+{"uuid": "shot@test", "name": "Dictate test helper", "description": "Test-only: screenshots, menu and clicks over D-Bus. Loaded only by tools/test-shell/run.sh", "shell-version": ["50"]}

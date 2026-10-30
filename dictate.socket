@@ -1,0 +1,9 @@
+[Unit]
+Description=Whisper push-to-talk dictation (socket; starts dictate.service on key press)
+
+[Socket]
+ListenStream=%t/dictate.sock
+SocketMode=0600
+
+[Install]
+WantedBy=sockets.target

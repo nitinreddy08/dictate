@@ -1,0 +1,9 @@
+# Local runtime, environment and downloaded models (recreated by the installer)
+python/
+.venv/
+models/
+__pycache__/
+*.pyc
+/build/
+/dist/
+*.egg-info/

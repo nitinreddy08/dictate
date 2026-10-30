@@ -1,0 +1,14 @@
+[Unit]
+Description=Whisper push-to-talk dictation
+# Started on demand by dictate.socket and exits after 90 s idle, so it uses no RAM when unused
+Requires=dictate.socket
+After=dictate.socket pipewire.service
+# Stop with the desktop session, so a new login never inherits a service tied to the old one
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=%h/WorkSpace/Personal/dictate/.venv/bin/python %h/WorkSpace/Personal/dictate/dictate.py serve
+# Always give Enter back, even if the daemon was killed mid-recording
+ExecStopPost=-%h/WorkSpace/Personal/dictate/.venv/bin/python %h/WorkSpace/Personal/dictate/dictate.py cleanup
+Restart=on-failure
+RestartSec=1

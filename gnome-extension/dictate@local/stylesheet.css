@@ -1,0 +1,43 @@
+.dictate-osd {
+    background-color: rgba(30, 30, 34, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 22px;
+    padding: 14px 20px 14px 14px;
+    margin-bottom: 56px;
+    spacing: 14px;
+    width: 380px;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+}
+
+.dictate-osd-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 21px;
+}
+
+.dictate-osd-badge.listening { background-color: rgba(255, 69, 58, 0.16); color: #ff453a; }
+.dictate-osd-badge.transcribing { background-color: rgba(10, 132, 255, 0.16); color: #0a84ff; }
+.dictate-osd-badge.done { background-color: rgba(48, 209, 88, 0.16); color: #30d158; }
+.dictate-osd-badge.empty { background-color: rgba(255, 255, 255, 0.08); color: #a1a1a6; }
+.dictate-osd-badge.error { background-color: rgba(255, 159, 10, 0.16); color: #ff9f0a; }
+.dictate-osd-badge.copied { background-color: rgba(10, 132, 255, 0.16); color: #0a84ff; }
+
+.dictate-osd-icon { icon-size: 20px; }
+
+.dictate-osd-text { spacing: 6px; width: 290px; }
+
+.dictate-osd-title { color: #f5f5f7; font-weight: bold; font-size: 11.5pt; }
+
+.dictate-osd-mic { color: #8e8e93; font-size: 9.5pt; }
+
+.dictate-osd-timer { color: #a1a1a6; font-size: 10pt; font-feature-settings: "tnum"; }
+
+.dictate-osd-wave { spacing: 3px; height: 22px; }
+
+.dictate-osd-bar { width: 4px; border-radius: 2px; }
+
+.dictate-osd-sub { color: #a1a1a6; font-size: 9.5pt; width: 290px; }
+
+.dictate-osd-preview { color: #e5e5ea; font-size: 10pt; width: 290px; }
+
+.dictate-menu-time { color: #8e8e93; font-size: 9pt; padding-left: 16px; }

@@ -1,0 +1,6 @@
+{
+    "uuid": "dictate@local",
+    "name": "Dictate",
+    "description": "Microphone button in the top bar that starts/stops Whisper dictation (same as pressing Insert). Turns red while listening.",
+    "shell-version": [ "50" ]
+}
