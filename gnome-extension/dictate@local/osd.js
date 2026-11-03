@@ -1,6 +1,6 @@
 // Bottom-center dictation popup, drawn by GNOME Shell itself (like the volume OSD).
 // Driven by the same text commands as osd.py:
-//   listening [mic] | level <0..1> | transcribing | done <text> | empty | error <title|hint> | hide
+//   listening [mic] | level <0..1> | transcribing | done <text> | pasted <text> | empty | error <title|hint> | hide
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
@@ -129,12 +129,18 @@ class DictateOsd extends Clutter.Actor {
                 autohide: 2200});
             break;
         }
+        case 'pasted':
+            // Pasted into an app GNOME can't see inside (X11/Electron): it may have had no text field,
+            // so don't claim it was typed, and say how to paste it from the clipboard
+            this._show('copied', 'Pasted, if a text box was active', {icon: 'edit-copy-symbolic',
+                sub: `It's on your clipboard. Press ${this._key('Ctrl+V')} where you want it`, autohide: 5000});
+            break;
         case 'copied':
             this._show('copied', 'Copied to clipboard', {icon: 'edit-copy-symbolic',
                 sub: GLib.markup_escape_text(wrapLines(arg), -1), autohide: 1800});
             break;
         case 'nofield':
-            this._show('copied', 'No text field was active', {icon: 'edit-copy-symbolic',
+            this._show('copied', 'No text box to type into', {icon: 'edit-copy-symbolic',
                 sub: `It's on your clipboard. Press ${this._key('Ctrl+V')} where you want it`, autohide: 5000});
             break;
         case 'empty':

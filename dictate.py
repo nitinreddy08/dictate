@@ -406,7 +406,8 @@ def serve():
         if text:
             remember(text)
             how = type_text(text if text.endswith("\n") else text + " ")
-            osd.send(f"{'nofield' if how == 'clipboard' else 'done'} {text}")
+            state = {"clipboard": "nofield", "paste": "pasted"}.get(how, "done")
+            osd.send(f"{state} {text}")
             return True
         if peak < 0.002:
             osd.send("error The microphone only sent silence|Check your input device in Settings → Sound")

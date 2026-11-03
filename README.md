@@ -73,8 +73,9 @@ A popup at the bottom center shows Listening (live waveform + timer) → Transcr
 - **Enter** is only captured while listening; the daemon and systemd release it on stop or crash.
 - **Backups (nothing is lost):**
   - No text field active (e.g. on the desktop): the text goes to the clipboard and the popup says
-    "No text field was active … press Ctrl+V". When text is pasted into an app (X11/Electron), it's also left
-    on the clipboard in case no field was focused there.
+    "No text box to type into … press Ctrl+V". Apps GNOME can't see inside (X11/Electron) get a paste, and
+    since Dictate can't tell whether a text box was active there, the popup says "Pasted, if a text box was
+    active" with the same Ctrl+V hint; the text stays on the clipboard either way.
   - Right-click the top-bar icon: your last 3 dictations (click to copy; older ones are deleted), and
     **Retry last recording**. At most one recording is ever kept: the latest that failed, until retried.
   - If transcription fails, or the service crashes mid-recording, the audio is kept as
