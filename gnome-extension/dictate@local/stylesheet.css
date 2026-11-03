@@ -13,14 +13,10 @@
     width: 42px;
     height: 42px;
     border-radius: 21px;
+    /* One colour for every state: the title and icon already say what's happening */
+    background-color: rgba(48, 209, 88, 0.16);
+    color: #30d158;
 }
-
-.dictate-osd-badge.listening { background-color: rgba(255, 69, 58, 0.16); color: #ff453a; }
-.dictate-osd-badge.transcribing { background-color: rgba(10, 132, 255, 0.16); color: #0a84ff; }
-.dictate-osd-badge.done { background-color: rgba(48, 209, 88, 0.16); color: #30d158; }
-.dictate-osd-badge.empty { background-color: rgba(255, 255, 255, 0.08); color: #a1a1a6; }
-.dictate-osd-badge.error { background-color: rgba(255, 159, 10, 0.16); color: #ff9f0a; }
-.dictate-osd-badge.copied { background-color: rgba(10, 132, 255, 0.16); color: #0a84ff; }
 
 .dictate-osd-icon { icon-size: 20px; }
 

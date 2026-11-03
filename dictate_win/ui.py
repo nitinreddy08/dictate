@@ -100,14 +100,8 @@ def app_icon():
 
 # --- the popup -------------------------------------------------------------------------------
 
-BADGE_COLORS = {
-    "listening": (QColor(255, 69, 58), QColor(255, 69, 58, 41)),
-    "transcribing": (QColor(10, 132, 255), QColor(10, 132, 255, 41)),
-    "done": (QColor(48, 209, 88), QColor(48, 209, 88, 41)),
-    "copied": (QColor(10, 132, 255), QColor(10, 132, 255, 41)),
-    "empty": (QColor(161, 161, 166), QColor(255, 255, 255, 20)),
-    "error": (QColor(255, 159, 10), QColor(255, 159, 10, 41)),
-}
+# One colour for every state: the title and icon already say what's happening
+BADGE_COLOR = (QColor(48, 209, 88), QColor(48, 209, 88, 41))
 
 
 class Badge(QWidget):
@@ -119,7 +113,7 @@ class Badge(QWidget):
         self.mode, self.t0 = "listening", time.monotonic()
 
     def paintEvent(self, event):
-        fg, bg = BADGE_COLORS.get(self.mode, BADGE_COLORS["empty"])
+        fg, bg = BADGE_COLOR
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)
