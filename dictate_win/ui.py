@@ -100,8 +100,15 @@ def app_icon():
 
 # --- the popup -------------------------------------------------------------------------------
 
-# One colour for every state: the title and icon already say what's happening
-BADGE_COLOR = (QColor(48, 209, 88), QColor(48, 209, 88, 41))
+# Green: listening · blue: transcribing · purple: typed · yellow: on the clipboard · red: a problem
+BADGE_COLORS = {
+    "listening": (QColor(48, 209, 88), QColor(48, 209, 88, 41)),
+    "transcribing": (QColor(10, 132, 255), QColor(10, 132, 255, 41)),
+    "done": (QColor(191, 90, 242), QColor(191, 90, 242, 41)),
+    "copied": (QColor(255, 214, 10), QColor(255, 214, 10, 41)),
+    "empty": (QColor(255, 69, 58), QColor(255, 69, 58, 41)),
+    "error": (QColor(255, 69, 58), QColor(255, 69, 58, 41)),
+}
 
 
 class Badge(QWidget):
@@ -113,7 +120,7 @@ class Badge(QWidget):
         self.mode, self.t0 = "listening", time.monotonic()
 
     def paintEvent(self, event):
-        fg, bg = BADGE_COLOR
+        fg, bg = BADGE_COLORS.get(self.mode, BADGE_COLORS["error"])
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)
@@ -279,7 +286,7 @@ class Popup(QWidget):
         elif cmd == "copied":
             self.show_state("copied", "Copied to clipboard", sub=self._text(arg), preview=True, autohide=1800)
         elif cmd == "nofield":
-            self.show_state("copied", "No text box to type into",
+            self.show_state("copied", "No text box was active",
                             sub=f"It's on your clipboard. Press {key_chip('Ctrl+V')} where you want it",
                             autohide=5000)
         elif cmd == "empty":

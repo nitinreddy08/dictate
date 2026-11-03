@@ -132,7 +132,7 @@ class DictateOsd extends Clutter.Actor {
         case 'pasted':
             // Pasted into an app GNOME can't see inside (X11/Electron): it may have had no text field,
             // so don't claim it was typed, and say how to paste it from the clipboard
-            this._show('copied', 'Pasted, if a text box was active', {icon: 'edit-copy-symbolic',
+            this._show('copied', 'No text box was active', {icon: 'edit-copy-symbolic',
                 sub: `It's on your clipboard. Press ${this._key('Ctrl+V')} where you want it`, autohide: 5000});
             break;
         case 'copied':
@@ -140,7 +140,7 @@ class DictateOsd extends Clutter.Actor {
                 sub: GLib.markup_escape_text(wrapLines(arg), -1), autohide: 1800});
             break;
         case 'nofield':
-            this._show('copied', 'No text box to type into', {icon: 'edit-copy-symbolic',
+            this._show('copied', 'No text box was active', {icon: 'edit-copy-symbolic',
                 sub: `It's on your clipboard. Press ${this._key('Ctrl+V')} where you want it`, autohide: 5000});
             break;
         case 'empty':
