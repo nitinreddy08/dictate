@@ -17,7 +17,8 @@ shows the speech models with their pros and cons (and recommends one), downloads
 tests your microphone and lets you pick a shortcut.
 
 - **Use it:** click into any text box, press **Insert**, speak, then press **Insert** or **Enter**.
-- **Tray icon** (rainbow bars, by the clock): left-click to start/stop; right-click for your last 3
+- **Tray icon** (rainbow bars, by the clock; Windows 11 may tuck it under the **^** arrow at first, drag
+  it onto the taskbar to keep it in view): left-click to start/stop; right-click for your last 3
   dictations (click to copy), *Retry last recording*, your vocabulary list and *Start with Windows*.
 - **Types any character** (₹, é, —, emoji) on any keyboard layout. On the desktop, or in apps running as
   administrator (Windows blocks typing into those), the text goes to your clipboard instead and the popup

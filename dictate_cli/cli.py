@@ -403,6 +403,10 @@ def cmd_setup(args):
     started = False if args.no_start else start_app()
     if started:
         ok("Dictate is running: look for the rainbow icon by the clock")
+        if IS_WINDOWS:  # Windows 11 tucks new tray icons away until you pin them
+            console.print(Text("    Don't see it? Click the ^ arrow by the clock, then drag the icon onto the taskbar\n"
+                               "    to keep it there (or pin it in Settings → Personalization → Taskbar).",
+                               style="dim"))
     console.print()
     how = Text.assemble("Click into any text box, press ", (settings["hotkey"], "bold"), ", speak, then press ",
                         (settings["hotkey"], "bold"), " or ", ("Enter", "bold"), ".\n",
