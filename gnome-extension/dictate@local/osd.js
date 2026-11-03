@@ -164,9 +164,9 @@ class DictateOsd extends Clutter.Actor {
     }
 
     _show(mode, title, {icon = null, mic = '', sub = '', autohide = 0}) {
-        if (this._mode !== mode)
-            this._badge.remove_style_class_name(this._mode);
-        this._badge.add_style_class_name(mode);
+        // Replace the whole class list: hiding resets _mode, so removing just the previous state's class
+        // left it behind, and e.g. a red "Didn't catch that" kept the next "Listening" red
+        this._badge.style_class = `dictate-osd-badge ${mode}`;
         this._mode = mode;
 
         this._icon.visible = !!icon;
