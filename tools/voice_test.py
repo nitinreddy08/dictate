@@ -81,7 +81,7 @@ def main():
         print()
     with open(os.path.join(OUT, "sentences.json"), "w") as f:
         json.dump({"sentences": SENTENCES, "mics": {l: d for l, _, d in mics}}, f)
-    print("All done — thank you! Tell Claude the recordings are ready.\n")
+    print("All done — thank you! The recordings are ready for tools/benchmark.py.\n")
 
 
 if __name__ == "__main__":
