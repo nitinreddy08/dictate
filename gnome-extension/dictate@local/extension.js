@@ -123,6 +123,13 @@ const DictateButton = GObject.registerClass({
 
 
         this._state = null;
+        // Back on screen (after a fullscreen app, or after another extension
+        // moved the icon): pick the animation up again. The sparkle is the
+        // icon's last child, so by the time it is mapped every bar is too.
+        this._sparkle.connect('notify::mapped', () => {
+            if (this._sparkle.mapped)
+                this._animate();
+        });
         this._stateFile = Gio.File.new_for_path(STATE_FILE);
         this._monitor = this._stateFile.monitor_file(Gio.FileMonitorFlags.NONE, null);
         this._monitor.connect('changed', () => this._readState());
@@ -204,6 +211,9 @@ const DictateButton = GObject.registerClass({
 
     // --- animation ---------------------------------------------------------------
     // Ease back and forth between two property sets until _stopAll() is called.
+    // While the icon is off screen (the top bar hidden for a fullscreen app),
+    // GNOME finishes every ease instantly, so looping on would recurse without
+    // end. Stop instead; _animate() starts again when the icon is back.
     _loop(actor, from, to, duration, delay = 0) {
         const step = (props, wait) => {
             actor.ease({
@@ -212,7 +222,7 @@ const DictateButton = GObject.registerClass({
                 delay: wait,
                 mode: Clutter.AnimationMode.EASE_IN_OUT_SINE,
                 onStopped: finished => {
-                    if (finished)
+                    if (finished && actor.mapped)
                         step(props === to ? from : to, 0);
                 },
             });
@@ -231,8 +241,12 @@ const DictateButton = GObject.registerClass({
         if (state === this._state)
             return;
         this._state = state;
-        this._stopAll();
+        this._animate();
+    }
 
+    _animate() {
+        this._stopAll();
+        const state = this._state;
         if (state === 'listening') {
             // Bars bounce one after another, sparkle twinkles
             this._bars.forEach((bar, i) =>
